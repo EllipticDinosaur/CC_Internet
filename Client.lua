@@ -278,6 +278,113 @@ local function register()
         print("Error:", err)
     end
 end
+
+-- Function to register a new domain
+local function registerDomain()
+    print("Enter the domain name to register:")
+    local domain = read()
+
+    if not userID then
+        print("Please log in to register a domain.")
+        return
+    end
+
+    local response, err = httpPost("/domain/register", {
+        ownerUserID = userID,
+        domain = base64Encode(domain)
+    })
+
+    if response then
+        print("Domain registered successfully:", domain)
+    else
+        print("Error registering domain:", err)
+    end
+end
+
+-- Function to redirect a domain
+local function redirectDomain()
+    print("Enter the domain name to redirect:")
+    local domain = read()
+    print("Enter the target Sub-IP or domain:")
+    local target = read()
+
+    if not userID then
+        print("Please log in to redirect a domain.")
+        return
+    end
+
+    -- Send the request to the server
+    local response, err = httpPost("/domain/redirect", {
+        domain = base64Encode(domain),  -- Base64 encode the domain
+        ownerUserID = userID,           -- Ensure the correct userID is sent
+        targetSubIP = target            -- The target for redirection
+    })
+
+    -- Handle the response
+    if response then
+        if response.message then
+            print("Domain redirected successfully:", domain)
+        else
+            print("Error:", response.error or "Unknown error")
+        end
+    else
+        print("Error redirecting domain:", err)
+    end
+end
+
+
+-- Function to query a domain
+local function queryDomain()
+    print("Enter the domain name to query:")
+    local domain = read()
+    if not userID then
+        print("Please log in to query a domain.")
+        return
+    end
+    local response, err = httpPost("/domain/query", {
+        ownerUserID = userID,
+        domain = base64Encode(domain)
+    })
+
+    if response then
+        print("Domain:", domain)
+        print("Owner:", response.ownerUsername)
+        if response.redirect then
+            print("Redirect:", response.redirect)
+        else
+            print("Redirect: None")
+        end
+    else
+        print("Error querying domain:", err)
+    end
+end
+
+-- Function to transfer a domain
+local function transferDomain()
+    print("Enter the domain name to transfer:")
+    local domain = read()
+    print("Enter the username of the recipient:")
+    local recipientUsername = read()
+
+    if not userID then
+        print("Please log in to transfer a domain.")
+        return
+    end
+
+    local response, err = httpPost("/domain/transfer", {
+        domain = base64Encode(domain),
+        currentOwnerUserID = userID,
+        newOwnerUsername = base64Encode(recipientUsername) -- Encode the recipient username
+    })
+
+    if response then
+        print("Domain transferred successfully:", domain, "to", recipientUsername)
+    else
+        print("Error transferring domain:", err)
+    end
+end
+
+
 function mainMenu()
     while true do
         print("\nMain Menu:")
@@ -285,7 +392,11 @@ function mainMenu()
         print("2. Log In")
         print("3. Send Ping")
         print("4. Simulate Web Request")
-        print("5. Exit")
+        print("5. Register Domain")
+        print("6. Transfer Domain")
+        print("7. Redirect Domain")
+        print("8. Query Domain")
+        print("9. Exit")
         print("Choose an option:")
         local choice = read()
 
@@ -295,16 +406,29 @@ function mainMenu()
             login()
         elseif choice == "3" then
             if not userID then
+                print("Please log in first!")
             else
                 pingTarget()
             end
         elseif choice == "4" then
             simulateWebRequest()
         elseif choice == "5" then
+            registerDomain()
+        elseif choice == "6" then
+            transferDomain()
+        elseif choice == "7" then
+            redirectDomain()
+        elseif choice == "8" then
+            queryDomain()
+        elseif choice == "9" then
+            print("Goodbye!")
             break
+        else
+            print("Invalid option!")
         end
     end
 end
+
 
 function run()
     parallel.waitForAny(listen, mainMenu)
