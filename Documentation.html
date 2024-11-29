@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+        }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        main {
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .endpoint {
+            background-color: white;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 10px;
+            display: block;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .parameter, .response, .examples {
+            margin-left: 20px;
+        }
+        .examples h3 {
+            color: #16a085;
+        }
+        .nav {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 250px;
+            height: 100%;
+            background-color: #34495e;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            margin: 10px 0;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>API Documentation</h1>
+        <p>Comprehensive documentation for managing users, domains, ISPs, and messaging.</p>
+    </header>
+    <div class="nav">
+        <h3>Navigation</h3>
+        <a href="#register">Register User</a>
+        <a href="#login">Login</a>
+        <a href="#register-domain">Register Domain</a>
+        <a href="#query-domain">Query Domain</a>
+        <a href="#export-domains">Export Domains</a>
+        <a href="#register-isp">Register ISP</a>
+        <a href="#isp-accept-request">ISP Accept Request</a>
+        <a href="#isp-deny-request">ISP Deny Request</a>
+        <a href="#isp-whois">ISP WHOIS</a>
+        <a href="#isp-ping">ISP Ping</a>
+        <a href="#isp-update-subip">ISP Update SubIP</a>
+        <a href="#send-message">Send Message</a>
+        <a href="#reverse-request">Reverse Request</a>
+        <a href="#sas-command">SAS Command</a>
+    </div>    
+    <main>
+        <!-- Register User -->
+        <div id="register" class="endpoint">
+            <h2>Register User</h2>
+            <p>Registers a new user in the system.</p>
+            <strong>POST /register</strong>
+            <div class="parameter">
+                <h3>Parameters:</h3>
+                <ul>
+                    <li><strong>username</strong>: The username for the new user.</li>
+                    <li><strong>password</strong>: The password for the new user.</li>
+                </ul>
+            </div>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+{
+    "message": "Registration successful",
+    "subIP": "192.0.0.1",
+    "userID": "f1b44e74-5d8e-41c4-a6f9-1e674eb6c9e0"
+}
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+curl -X POST http://example.com/register \
+-H "Content-Type: application/json" \
+-d '{"username": "john_doe", "password": "securepassword"}'
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+http.post(
+    "http://example.com/register",
+    textutils.serializeJSON({ username = "john_doe", password = "securepassword" }),
+    { ["Content-Type"] = "application/json" }
+)
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+local internet = require("internet")
+local data = [[{"username": "john_doe", "password": "securepassword"}]]
+local request = internet.request("http://example.com/register", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+                </code>
+            </div>
+        </div>
+
+        <!-- Login -->
+        <div id="login" class="endpoint">
+            <h2>Login</h2>
+            <p>Logs in a user and retrieves their user details.</p>
+            <strong>POST /login</strong>
+            <div class="parameter">
+                <h3>Parameters:</h3>
+                <ul>
+                    <li><strong>username</strong>: The username of the user.</li>
+                    <li><strong>password</strong>: The user's password.</li>
+                </ul>
+            </div>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+{
+    "message": "Login successful",
+    "subIP": "192.0.0.1",
+    "userID": "f1b44e74-5d8e-41c4-a6f9-1e674eb6c9e0"
+}
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+curl -X POST http://example.com/login \
+-H "Content-Type: application/json" \
+-d '{"username": "john_doe", "password": "securepassword"}'
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+http.post(
+    "http://example.com/login",
+    textutils.serializeJSON({ username = "john_doe", password = "securepassword" }),
+    { ["Content-Type"] = "application/json" }
+)
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+local internet = require("internet")
+local data = [[{"username": "john_doe", "password": "securepassword"}]]
+local request = internet.request("http://example.com/login", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+                </code>
+            </div>
+        </div>
+
+        <!-- Register Domain -->
+        <div id="register-domain" class="endpoint">
+            <h2>Register Domain</h2>
+            <p>Registers a new domain for a user.</p>
+            <strong>POST /domain/register</strong>
+            <div class="parameter">
+                <h3>Parameters:</h3>
+                <ul>
+                    <li><strong>ownerUserID</strong> (string): The user ID of the domain owner.</li>
+                    <li><strong>domain</strong> (string, Base64 required): The domain name to register.</li>
+                </ul>
+            </div>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+{
+    "message": "Domain registered successfully."
+}
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+curl -X POST http://example.com/domain/register \
+-H "Content-Type: application/json" \
+-d '{"ownerUserID": "12345", "domain": "ZG9tYWluLmNvbQ=="}'
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+http.post(
+    "http://example.com/domain/register",
+    textutils.serializeJSON({ ownerUserID = "12345", domain = "ZG9tYWluLmNvbQ==" }),
+    { ["Content-Type"] = "application/json" }
+)
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+local internet = require("internet")
+local data = [[{"ownerUserID": "12345", "domain": "ZG9tYWluLmNvbQ=="}]]
+local request = internet.request("http://example.com/domain/register", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+                </code>
+            </div>
+        </div>
+
+        <!-- Query Domain -->
+        <div id="query-domain" class="endpoint">
+            <h2>Query Domain</h2>
+            <p>Retrieve information about a registered domain.</p>
+            <strong>POST /domain/query</strong>
+            <div class="parameter">
+                <h3>Parameters:</h3>
+                <ul>
+                    <li><strong>domain</strong> (string, Base64 required): The domain name to query.</li>
+                </ul>
+            </div>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+{
+    "ownerUsername": "john_doe",
+    "redirect": "192.0.0.2"
+}
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+curl -X POST http://example.com/domain/query \
+-H "Content-Type: application/json" \
+-d '{"domain": "ZG9tYWluLmNvbQ=="}'
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+http.post(
+    "http://example.com/domain/query",
+    textutils.serializeJSON({ domain = "ZG9tYWluLmNvbQ==" }),
+    { ["Content-Type"] = "application/json" }
+)
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+local internet = require("internet")
+local data = [[{"domain": "ZG9tYWluLmNvbQ=="}]]
+local request = internet.request("http://example.com/domain/query", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+                </code>
+            </div>
+        </div>
+
+        <!-- Export Domains -->
+        <div id="export-domains" class="endpoint">
+            <h2>Export Domains</h2>
+            <p>Exports all domains registered locally.</p>
+            <strong>GET /domain/export</strong>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+{
+    "domains": {
+        "ZG9tYWluLmNvbQ==": {
+            "ownerUserID": "f1b44e74-5d8e-41c4-a6f9-1e674eb6c9e0",
+            "redirect": null
+        }
+    }
+}
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+curl -X GET http://example.com/domain/export
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+local response = http.get("http://example.com/domain/export")
+if response then
+    print(response.readAll())
+end
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+local internet = require("internet")
+local request = internet.request("http://example.com/domain/export")
+for chunk in request do
+    print(chunk)
+end
+                </code>
+            </div>
+        </div>
+
+        <!-- Register ISP -->
+        <div id="register-isp" class="endpoint">
+            <h2>Register ISP</h2>
+            <p>Registers a new ISP in the system.</p>
+            <strong>POST /isp/register</strong>
+            <div class="parameter">
+                <h3>Parameters:</h3>
+                <ul>
+                    <li><strong>ispID</strong> (string): Optional unique identifier for the ISP.</li>
+                    <li><strong>subIPPrefix</strong> (string): The Sub-IP prefix managed by the ISP.</li>
+                    <li><strong>realIP</strong> (string): The real IP address of the ISP server.</li>
+                    <li><strong>port</strong> (integer): The port the ISP server listens on.</li>
+                    <li><strong>domains</strong> (object): Domains managed by the ISP.</li>
+                    <li><strong>knownISPs</strong> (object): Other ISPs known to the registering ISP.</li>
+                </ul>
+            </div>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+{
+    "message": "ISP registered successfully",
+    "ispID": "1234-5678-isp"
+}
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+curl -X POST http://example.com/isp/register \
+-H "Content-Type: application/json" \
+-d '{
+    "subIPPrefix": "192.",
+    "realIP": "203.0.113.10",
+    "port": 8080,
+    "domains": {},
+    "knownISPs": {}
+}'
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+http.post(
+    "http://example.com/isp/register",
+    textutils.serializeJSON({ 
+        subIPPrefix = "192.", 
+        realIP = "203.0.113.10", 
+        port = 8080, 
+        domains = {}, 
+        knownISPs = {} 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+local internet = require("internet")
+local data = [[{
+    "subIPPrefix": "192.",
+    "realIP": "203.0.113.10",
+    "port": 8080,
+    "domains": {},
+    "knownISPs": {}
+}]]
+local request = internet.request("http://example.com/isp/register", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+                </code>
+            </div>
+        </div>
+
+        <!-- Send Message -->
+        <div id="send-message" class="endpoint">
+            <h2>Send Message</h2>
+            <p>Sends a message to a target user or ISP.</p>
+            <strong>POST /send</strong>
+            <div class="parameter">
+                <h3>Parameters:</h3>
+                <ul>
+                    <li><strong>fromUserID</strong> (string): The user ID of the sender.</li>
+                    <li><strong>targetSubIP</strong> (string): The Sub-IP of the recipient.</li>
+                    <li><strong>message</strong> (string, Base64 required): The message to send.</li>
+                </ul>
+            </div>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+{
+    "message": "Message sent successfully."
+}
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+curl -X POST http://example.com/send \
+-H "Content-Type: application/json" \
+-d '{
+    "fromUserID": "12345",
+    "targetSubIP": "192.0.0.2",
+    "message": "SGVsbG8sIFdvcmxkIQ=="
+}'
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+http.post(
+    "http://example.com/send",
+    textutils.serializeJSON({ 
+        fromUserID = "12345", 
+        targetSubIP = "192.0.0.2", 
+        message = "SGVsbG8sIFdvcmxkIQ==" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+local internet = require("internet")
+local data = [[{
+    "fromUserID": "12345",
+    "targetSubIP": "192.0.0.2",
+    "message": "SGVsbG8sIFdvcmxkIQ=="
+}]]
+local request = internet.request("http://example.com/send", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+                </code>
+            </div>
+        </div>
+
+        <!-- Reverse Request -->
+        <div id="reverse-request" class="endpoint">
+            <h2>Reverse Request</h2>
+            <p>Sends a reverse web request to a target user or ISP.</p>
+            <strong>POST /reverse</strong>
+            <div class="parameter">
+                <h3>Parameters:</h3>
+                <ul>
+                    <li><strong>targetSubIP</strong> (string): The Sub-IP of the recipient.</li>
+                    <li><strong>method</strong> (string): The HTTP method (GET or POST).</li>
+                    <li><strong>path</strong> (string): The target path.</li>
+                    <li><strong>data</strong> (string): Data for POST requests.</li>
+                </ul>
+            </div>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+{
+    "response": "Base64 encoded response from recipient"
+}
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+curl -X POST http://example.com/reverse \
+-H "Content-Type: application/json" \
+-d '{
+    "targetSubIP": "192.0.0.2",
+    "method": "GET",
+    "path": "/status"
+}'
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+http.post(
+    "http://example.com/reverse",
+    textutils.serializeJSON({ 
+        targetSubIP = "192.0.0.2", 
+        method = "GET", 
+        path = "/status" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+local internet = require("internet")
+local data = [[{
+    "targetSubIP": "192.0.0.2",
+    "method": "GET",
+    "path": "/status"
+}]]
+local request = internet.request("http://example.com/reverse", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+                </code>
+            </div>
+        </div>
+        <!-- ISP Management: Accept ISP Request -->
+
+        <div id="register-isp" class="endpoint">
+            <h2>Register ISP</h2>
+            <p>
+                Registers a new ISP in the system. If the ISP is already known, its details are updated.
+                Otherwise, the ISP is added to the list of unknown ISPs for manual review.
+            </p>
+            <strong>POST /isp/register</strong>
+            <div class="parameter">
+                <h3>Parameters:</h3>
+                <ul>
+                    <li><strong>ispID</strong> (optional, string): A unique identifier for the ISP. Auto-generated if not provided.</li>
+                    <li><strong>subIPPrefix</strong> (string): The Sub-IP prefix managed by the ISP.</li>
+                    <li><strong>realIP</strong> (string): The real IP address of the ISP server.</li>
+                    <li><strong>port</strong> (integer): The port the ISP server listens on.</li>
+                    <li><strong>realNetworking</strong> (optional, boolean): Whether real networking is enabled for the ISP.</li>
+                    <li><strong>domains</strong> (optional, object): Domains managed by the ISP.</li>
+                    <li><strong>knownISPs</strong> (optional, object): Other ISPs known to the registering ISP.</li>
+                </ul>
+            </div>
+            <div class="response">
+                <h3>Response:</h3>
+                <code>
+        {
+            "message": "ISP registered successfully",
+            "ispID": "1234-5678-isp"
+        }
+                </code>
+            </div>
+            <div class="examples">
+                <h3>Examples</h3>
+                <h4>cURL</h4>
+                <code>
+        curl -X POST http://example.com/isp/register \
+        -H "Content-Type: application/json" \
+        -d '{
+            "subIPPrefix": "192.168.",
+            "realIP": "203.0.113.10",
+            "port": 8080,
+            "realNetworking": true,
+            "domains": {"example.com": "ownerID1"},
+            "knownISPs": {"isp123": {"subIPPrefix": "192.169.", "realIP": "203.0.113.11", "port": 8081}}
+        }'
+                </code>
+                <h4>ComputerCraft</h4>
+                <code>
+        http.post(
+            "http://example.com/isp/register",
+            textutils.serializeJSON({ 
+                subIPPrefix = "192.168.", 
+                realIP = "203.0.113.10", 
+                port = 8080, 
+                realNetworking = true, 
+                domains = {["example.com"] = "ownerID1"}, 
+                knownISPs = {["isp123"] = {subIPPrefix = "192.169.", realIP = "203.0.113.11", port = 8081}}
+            }),
+            { ["Content-Type"] = "application/json" }
+        )
+                </code>
+                <h4>OpenComputers</h4>
+                <code>
+        local internet = require("internet")
+        local data = [[{
+            "subIPPrefix": "192.168.",
+            "realIP": "203.0.113.10",
+            "port": 8080,
+            "realNetworking": true,
+            "domains": {"example.com": "ownerID1"},
+            "knownISPs": {"isp123": {"subIPPrefix": "192.169.", "realIP": "203.0.113.11", "port": 8081}}
+        }]]
+        local request = internet.request("http://example.com/isp/register", data, { ["Content-Type"] = "application/json" })
+        for chunk in request do
+            print(chunk)
+        end
+                </code>
+            </div>
+        </div>
+        
+<div id="isp-accept-request" class="endpoint">
+    <h2>Accept ISP Request</h2>
+    <p>Accepts a request from an unknown ISP and moves it to the known ISPs list.</p>
+    <strong>POST /isp/acceptRequest</strong>
+    <div class="parameter">
+        <h3>Parameters:</h3>
+        <ul>
+            <li><strong>ispID</strong> (string): The ID of the ISP to accept.</li>
+        </ul>
+    </div>
+    <div class="response">
+        <h3>Response:</h3>
+        <code>
+{
+    "message": "ISP {ispID} accepted and added to known ISPs"
+}
+        </code>
+    </div>
+    <div class="examples">
+        <h3>Examples</h3>
+        <h4>cURL</h4>
+        <code>
+curl -X POST http://example.com/isp/acceptRequest \
+-H "Content-Type: application/json" \
+-d '{"ispID": "12345"}'
+        </code>
+        <h4>ComputerCraft</h4>
+        <code>
+http.post(
+    "http://example.com/isp/acceptRequest",
+    textutils.serializeJSON({ ispID = "12345" }),
+    { ["Content-Type"] = "application/json" }
+)
+        </code>
+        <h4>OpenComputers</h4>
+        <code>
+local internet = require("internet")
+local data = [[{"ispID": "12345"}]]
+local request = internet.request("http://example.com/isp/acceptRequest", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+        </code>
+    </div>
+</div>
+
+<!-- ISP Management: Deny ISP Request -->
+<div id="isp-deny-request" class="endpoint">
+    <h2>Deny ISP Request</h2>
+    <p>Denies a request from an unknown ISP and removes it from the review list.</p>
+    <strong>POST /isp/denyRequest</strong>
+    <div class="parameter">
+        <h3>Parameters:</h3>
+        <ul>
+            <li><strong>ispID</strong> (string): The ID of the ISP to deny.</li>
+        </ul>
+    </div>
+    <div class="response">
+        <h3>Response:</h3>
+        <code>
+{
+    "message": "ISP {ispID} denied and removed from review list"
+}
+        </code>
+    </div>
+    <div class="examples">
+        <h3>Examples</h3>
+        <h4>cURL</h4>
+        <code>
+curl -X POST http://example.com/isp/denyRequest \
+-H "Content-Type: application/json" \
+-d '{"ispID": "12345"}'
+        </code>
+        <h4>ComputerCraft</h4>
+        <code>
+http.post(
+    "http://example.com/isp/denyRequest",
+    textutils.serializeJSON({ ispID = "12345" }),
+    { ["Content-Type"] = "application/json" }
+)
+        </code>
+        <h4>OpenComputers</h4>
+        <code>
+local internet = require("internet")
+local data = [[{"ispID": "12345"}]]
+local request = internet.request("http://example.com/isp/denyRequest", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+        </code>
+    </div>
+</div>
+
+<!-- SAS: General Command -->
+<div id="sas-command" class="endpoint">
+    <h2>SAS Command</h2>
+    <p>Central endpoint for various SAS-related commands.</p>
+    <strong>POST /sas</strong>
+    <div class="parameter">
+        <h3>Parameters:</h3>
+        <ul>
+            <li><strong>action</strong> (string): The specific action to perform. Possible values include:</li>
+            <ul>
+                <li><strong>whois</strong>: Look up user/ISP details.</li>
+                <li><strong>ISPblacklist</strong>: Blacklist an ISP by its real IP.</li>
+                <li><strong>listISPs</strong>: Lists all known and unknown ISPs.</li>
+                <li><strong>acceptRequest</strong>: Accepts an ISP request and moves it to the known ISPs list.</li>
+                <li><strong>denyRequest</strong>: Denies an ISP request and removes it from the unknown ISPs list.</li>
+                <li><strong>viewLogs</strong>: Views traffic logs for users.</li>
+                <li><strong>BulkDeleteDomainByUser</strong>: Deletes all domains associated with a specific user.</li>
+                <li><strong>listUsers</strong>: Lists all registered users.</li>
+            </ul>
+            <li><strong>username</strong> (string): The admin username.</li>
+            <li><strong>password</strong> (string): The admin password.</li>
+            <li>Additional parameters depend on the specific <strong>action</strong> selected.</li>
+        </ul>
+    </div>
+    <div class="response">
+        <h3>Response:</h3>
+        <code>
+{
+    "message": "Action completed successfully.",
+    "result": {...}
+}
+        </code>
+    </div>
+    <div class="examples">
+        <h3>Examples</h3>
+
+        <h4>cURL: WHOIS</h4>
+        <code>
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "whois",
+    "username": "admin",
+    "password": "adminPassword",
+    "user": "john_doe"
+}'
+        </code>
+
+        <h4>ComputerCraft: WHOIS</h4>
+        <code>
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "whois", 
+        username = "admin", 
+        password = "adminPassword", 
+        user = "john_doe" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+        </code>
+
+        <h4>OpenComputers: WHOIS</h4>
+        <code>
+local internet = require("internet")
+local data = [[{
+    "action": "whois",
+    "username": "admin",
+    "password": "adminPassword",
+    "user": "john_doe"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+        </code>
+
+        <h4>cURL: List ISPs</h4>
+        <code>
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "listISPs",
+    "username": "admin",
+    "password": "adminPassword"
+}'
+        </code>
+
+        <h4>ComputerCraft: List ISPs</h4>
+        <code>
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "listISPs", 
+        username = "admin", 
+        password = "adminPassword" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+        </code>
+
+        <h4>OpenComputers: List ISPs</h4>
+        <code>
+local internet = require("internet")
+local data = [[{
+    "action": "listISPs",
+    "username": "admin",
+    "password": "adminPassword"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+        </code>
+    </div>
+</div>
+
+
+    </main>
+</body>
+</html>

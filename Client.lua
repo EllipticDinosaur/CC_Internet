@@ -146,10 +146,6 @@ function handleGetRequest(fromSubIP, path, requestID)
             requestID = requestID
         }
     end
-
-    -- Log the response
-    print("[DEBUG] GET Response for", path, ":", textutils.serialize(response))
-
     return response
 end
 
@@ -196,10 +192,6 @@ function handlePostRequest(fromSubIP, path, data, requestID)
             requestID = requestID
         }
     end
-
-    -- Log the response
-    print("[DEBUG] POST Response for", path, ":", textutils.serialize(response))
-
     return response
 end
 
@@ -208,7 +200,6 @@ end
     function handleReverseRequest(log)
         -- Validate input
         if not (log.message and log.from and log.requestID) then
-            print("[DEBUG] Missing required fields in log:", textutils.serializeJSON(log))
             return {
                 status = 400,
                 message = base64Encode("400: Bad Request - Missing required fields"),
@@ -219,7 +210,6 @@ end
         -- Decode message
         local decodedMessage = base64Decode(log.message)
         if not decodedMessage then
-            print("[DEBUG] Failed to decode message from", log.from, ":", log.message)
             return {
                 status = 400,
                 message = base64Encode("400: Bad Request - Invalid message encoding"),
@@ -227,20 +217,15 @@ end
             }
         end
     
-        print("[DEBUG] Decoded message:", decodedMessage)
-    
         -- Parse method, path, and data
         local method, path, data = decodedMessage:match("([^:]+):([^|]*)|?(.*)")
         if not method or not path then
-            print("[DEBUG] Malformed message from", log.from, ":", decodedMessage)
             return {
                 status = 400,
                 message = base64Encode("400: Bad Request - Malformed message"),
                 requestID = log.requestID
             }
         end
-    
-        print("[DEBUG] Parsed method:", method, "path:", path, "data:", data)
     
         -- Route request
         local response
@@ -249,7 +234,6 @@ end
         elseif method == "POST" then
             response = handlePostRequest(log.from, path, data, log.requestID)
         else
-            print("[DEBUG] Unsupported method:", method)
             response = {
                 status = 400,
                 message = base64Encode("400: Bad Request - Unsupported method"),
@@ -258,7 +242,6 @@ end
         end
     
         -- Log and return response
-        print("[DEBUG] Response generated:", textutils.serializeJSON(response))
         return response
     end
     
@@ -300,7 +283,6 @@ function listen()
                 for _, log in ipairs(response.logs) do
                     if log.from and log.message then
                         local decodedMessage = base64Decode(log.message)
-
                         -- Check for reverse request response by identifying the "responseID"
                         if log.message and log.from and log.requestID then
                             -- Detect GET or POST requests and call handleReverseRequest
@@ -315,8 +297,6 @@ function listen()
                             end
                         else
                             if log.requestID and log.from then
-                                print("Received response for requestID:", log.requestID, "from:", log.from)
-    
                                 -- If it's a file content response
                                 if decodedMessage:sub(1, 5) == "FILE:" then
                                     local fileContent = base64Decode(decodedMessage:sub(6))
@@ -334,13 +314,14 @@ function listen()
                                 print("Received file content from", log.from, ":")
                                 print(fileContent) -- Print the file content
                             elseif decodedMessage == "ping" then
+                                print("Received Ping from: ".. log.from)
                                 httpPost("/send", {
                                     fromUserID = userID,
                                     targetSubIP = log.from,
                                     message = base64Encode("pong")
                                 })
                             elseif decodedMessage == "pong" then
-
+                                print("Received Pong from: " .. log.from)
                             else
                                 print("Unexpected message received from", log.from, ":", decodedMessage)
                             end
@@ -354,51 +335,6 @@ function listen()
         sleep(5)
     end
 end
-
-function listen2()
-    while true do
-        if userID then
-            local response, err = httpPost("/listen", { userID = userID })
-            if response and response.logs then
-                for _, log in ipairs(response.logs) do
-                    -- Debug: Print the full log
-                    print("[DEBUG] Processing log entry:", textutils.serialize(log))
-                    print("DECODED: " .. base64Decode(log.message))
-
-                    -- Validate the log entry
-                    if log.message and log.from and log.requestID then
-                        -- Detect GET or POST requests and call handleReverseRequest
-                        print("Processing reverse request from:", log.from)
-                        local reverseResponse = handleReverseRequest(log)
-                        -- Send the response back using /send endpoint
-                        
-                        if reverseResponse then
-                            print("Response message: " .. reverseResponse.message)
-                            httpPost("/send", {
-                                fromUserID = userID,
-                                targetSubIP = log.from,
-                                message = reverseResponse.message,
-                                requestID = reverseResponse.requestID
-                            })
-                        end
-                    else
-                        -- Log invalid entries
-                        print("[DEBUG] Invalid log entry:", textutils.serialize(log))
-                    end
-                end
-            else
-                -- Debug: Log the error if the HTTP request fails
-                print("Error listening for messages:", err)
-            end
-        end
-        sleep(5)
-    end
-end
-
-
-
-
-
 
 function pingTarget()
     print("Enter target Sub-IP to ping:")
@@ -424,10 +360,6 @@ function simulateWebRequest()
         local targetSubIP = read()
         print("Enter file path:")
         local path = read()
-
-        -- Debug the request
-        print("[DEBUG] Sending GET request to:", targetSubIP, "Path:", path)
-
         httpPost("/reverse", {
             fromUserID = userID,
             targetSubIP = targetSubIP,
@@ -441,9 +373,6 @@ function simulateWebRequest()
         local path = read()
         print("Enter file content:")
         local data = read()
-
-        -- Debug the request
-        print("[DEBUG] Sending POST request to:", targetSubIP, "Path:", path, "Data:", data)
 
         httpPost("/reverse", {
             fromUserID = userID,

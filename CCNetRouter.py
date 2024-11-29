@@ -22,9 +22,10 @@ config = {}
 last_loaded_config = {}
 unknown_isps = {}
 
+
 CONFIG_FILE = "config.json"
 DEFAULT_CONFIG = {
-    "port": 7080,
+    "port": 7090,
     "host": "0.0.0.0",
     "subIPPrefix": "10.0.",
     "inactivity_limit_days": 3,
@@ -645,27 +646,44 @@ def query_domain():
         if not domain:
             return jsonify({"error": "Missing domain"}), 400
 
-        # Search for the domain in the dictionary
+        # Check locally first
         for encoded_domain, details in domains.items():
             if encoded_domain == domain:
                 owner_user_id = details["ownerUserID"]
-                
+
                 # Find the owner's username based on the User ID
                 owner_username = next(
                     (username for username, info in users.items() if info["userID"] == owner_user_id),
                     None
                 )
-
                 if not owner_username:
-                    return jsonify({"error": "Owner not found"}), 404
+                    break
 
-                # Return only the username and redirect (if available)
+                # Return the username and redirect (if available)
                 return jsonify({
                     "ownerUsername": owner_username,
                     "redirect": details.get("redirect")  # Include redirect if it exists
                 }), 200
 
-        # If the domain is not found, return an error
+        # If not found locally, check with known ISPs
+        for isp_id, isp in isps.items():
+            try:
+                response = requests.post(
+                    f"http://{isp['realIP']}:{isp['port']}/domain/query",
+                    json={"domain": domain}
+                )
+                if response.status_code == 200:
+                    return response.json(), 200
+                elif response.status_code == 404:
+                    print("404ed at contacting isp")
+                    continue  # If the ISP doesn't find it, try the next one
+                else:
+                    return jsonify({"error": "Error querying domain on ISP", "details": response.json()}), response.status_code
+            except Exception as e:
+                print(f"[ERROR] Failed to query domain on ISP {isp_id}: {str(e)}")
+                return jsonify({"error": "Failed to query domain on remote ISP"}), 502
+
+        # If the domain is not found locally or on any ISP
         return jsonify({"error": "Domain not found"}), 404
 
     except Exception as e:
