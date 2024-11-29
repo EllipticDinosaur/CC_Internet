@@ -1,61 +1,85 @@
+-- Base64 Character Set
 local base64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
 local charAt, indexOf = {}, {}
- 
+
+-- Initialize character mappings
+for i = 1, #base64chars do
+    local char = base64chars:sub(i, i)
+    charAt[i - 1] = char  -- Mapping index (0-based) to character
+    indexOf[char] = i - 1 -- Reverse mapping from character to index
+end
+
+-- Bitwise operation aliases for compatibility
 local blshift = bit32 and bit32.lshift or bit.blshift
 local brshift = bit32 and bit32.rshift or bit.brshift
 local band = bit32 and bit32.band or bit.band
 local bor = bit32 and bit32.bor or bit.bor
- 
-for i = 1, #base64chars do
-    local char = base64chars:sub(i,i)
-    charAt[i-1] = char
-    indexOf[char] = i-1
-end
- 
+
+-- Function to encode data into Base64
 local function base64Encode(data)
-    local bytes = {string.byte(data, 1, #data)}
-    local out = {}
+    local bytes = {string.byte(data, 1, #data)} -- Convert data to byte array
+    local out = {} -- Table for storing Base64 output
     local b
+
     for i = 1, #bytes, 3 do
-        b = brshift(band(bytes[i], 0xFC), 2)
-        out[#out+1] = charAt[b]
-        b = blshift(band(bytes[i], 0x03), 4)
-        if i+0 < #bytes then
-            b = bor(b, brshift(band(bytes[i+1], 0xF0), 4))
-            out[#out+1] = charAt[b]
-            b = blshift(band(bytes[i+1], 0x0F), 2)
-            if i+1 < #bytes then
-                b = bor(b, brshift(band(bytes[i+2], 0xC0), 6))
-                out[#out+1] = charAt[b]
-                b = band(bytes[i+2], 0x3F)
-                out[#out+1] = charAt[b]
+        -- Process each group of 3 bytes (24 bits total)
+        b = brshift(band(bytes[i], 0xFC), 2) -- Take first 6 bits
+        out[#out + 1] = charAt[b]
+        b = blshift(band(bytes[i], 0x03), 4) -- Take remaining 2 bits
+
+        if i + 0 < #bytes then
+            b = bor(b, brshift(band(bytes[i + 1], 0xF0), 4)) -- Combine with next 4 bits
+            out[#out + 1] = charAt[b]
+            b = blshift(band(bytes[i + 1], 0x0F), 2) -- Take remaining 4 bits
+
+            if i + 1 < #bytes then
+                b = bor(b, brshift(band(bytes[i + 2], 0xC0), 6)) -- Combine with next 2 bits
+                out[#out + 1] = charAt[b]
+                b = band(bytes[i + 2], 0x3F) -- Take last 6 bits
+                out[#out + 1] = charAt[b]
             else
-                out[#out+1] = charAt[b].."="
+                -- Padding required for 2 bytes
+                out[#out + 1] = charAt[b] .. "="
             end
         else
-            out[#out+1] = charAt[b].."=="
+            -- Padding required for 1 byte
+            out[#out + 1] = charAt[b] .. "=="
         end
     end
+
     return table.concat(out)
 end
 
+-- Function to decode Base64 data
 local function base64Decode(data)
     if not data then return "DECODING FAILED: Data is null" end
-    local decoded = {}
-    local inChars = {}
+
+    local decoded = {} -- Table for storing decoded bytes
+    local inChars = {} -- Table for storing input characters
+
+    -- Convert data into characters
     for char in data:gmatch(".") do
-        inChars[#inChars+1] = char
+        inChars[#inChars + 1] = char
     end
+
+    -- Process each group of 4 characters (24 bits total)
     for i = 1, #inChars, 4 do
-        local b = {indexOf[inChars[i]], indexOf[inChars[i+1]], indexOf[inChars[i+2]], indexOf[inChars[i+3]]}
-        decoded[#decoded+1] = bor(blshift(b[1], 2), brshift(b[2], 4)) % 256
+        local b = {
+            indexOf[inChars[i]] or 0,
+            indexOf[inChars[i + 1]] or 0,
+            indexOf[inChars[i + 2]] or 64, -- Padding character
+            indexOf[inChars[i + 3]] or 64  -- Padding character
+        }
+
+        decoded[#decoded + 1] = bor(blshift(b[1], 2), brshift(b[2], 4)) % 256
         if b[3] < 64 then
-            decoded[#decoded+1] = bor(blshift(b[2], 4), brshift(b[3], 2)) % 256
+            decoded[#decoded + 1] = bor(blshift(b[2], 4), brshift(b[3], 2)) % 256
             if b[4] < 64 then
-                decoded[#decoded+1] = bor(blshift(b[3], 6), b[4]) % 256
+                decoded[#decoded + 1] = bor(blshift(b[3], 6), b[4]) % 256
             end
         end
     end
+
     return string.char(table.unpack(decoded))
 end
 
@@ -82,66 +106,167 @@ function httpPost(endpoint, data)
     end
 end
 
-function handleGetRequest(fromSubIP, path)
+function handleGetRequest(fromSubIP, path, requestID)
+    path = base64Decode(path)
+    print(path)
+    -- Validate the path
+    if not path or path:find("public/", 1, true) then
+        return {
+            status = 400,
+            message = base64Encode("400: Invalid or unsafe file path"),
+            requestID = requestID
+        }
+    end
+
     local filePath = fs.combine(publicDir, path)
+    local response = {}
 
     if fs.exists(filePath) and not fs.isDir(filePath) then
-        local file = fs.open(filePath, "r")
-        local content = file.readAll()
-        file.close()
+        local file, err = fs.open(filePath, "r")
+        if not file then
+            response = {
+                status = 500,
+                message = base64Encode("500: Internal Server Error - " .. err),
+                requestID = requestID
+            }
+        else
+            local content = file.readAll()
+            file.close()
 
-        -- Ensure the file content is properly encoded and prefixed
-        httpPost("/send", {
-            fromUserID = userID,
-            targetSubIP = fromSubIP,
-            message = base64Encode("FILE:" .. base64Encode(content))
-        })
+            response = {
+                status = 200,
+                message = base64Encode("FILE:" .. base64Encode(content)),
+                requestID = requestID
+            }
+        end
     else
-        httpPost("/send", {
-            fromUserID = userID,
-            targetSubIP = fromSubIP,
-            message = base64Encode("404: File not found")
-        })
+        response = {
+            status = 404,
+            message = base64Encode("404: File not found"),
+            requestID = requestID
+        }
     end
+
+    -- Log the response
+    print("[DEBUG] GET Response for", path, ":", textutils.serialize(response))
+
+    return response
 end
 
-function handlePostRequest(fromSubIP, path, data)
-    print("From: " .. fromSubIP .. " PATH: " .. path .. " data: \n" ..data)
+
+
+function handlePostRequest(fromSubIP, path, data, requestID)
+    print("From: " .. fromSubIP .. " PATH: " .. path .. " data: \n" .. data)
+
+    -- Validate the path and decode the data
+    if not path or path:find("public/", 1, true) then
+        return {
+            status = 400,
+            message = base64Encode("400: Invalid or unsafe file path"),
+            requestID = requestID
+        }
+    end
+
     local filePath = fs.combine(publicDir, base64Decode(path))
     local decodedData = base64Decode(data)
-    if not decodedData then return end
 
-    local file = fs.open(filePath, "w")
-    file.write(decodedData)
-    file.close()
-
-    httpPost("/send", {
-        fromUserID = userID,
-        targetSubIP = fromSubIP,
-        message = base64Encode("201: File created")
-    })
-end
-
-function handleReverseRequest(log)
-    if log.message and log.from then
-        local decodedMessage = base64Decode(log.message)
-        if not decodedMessage:match("^[^:]+:.+") then return end
-
-        local parts = {}
-        for part in string.gmatch(decodedMessage, "([^:|]+)") do
-            table.insert(parts, part)
-        end
-
-        local method = parts[1]
-        local path = parts[2]
-        local data = parts[3]
-        if method == "GET" then
-            handleGetRequest(log.from, path)
-        elseif method == "POST" then
-            handlePostRequest(log.from, path, data)
-        end
+    if not decodedData then
+        return {
+            status = 400,
+            message = base64Encode("400: Invalid data"),
+            requestID = requestID
+        }
     end
+
+    local response = {}
+    local file, err = fs.open(filePath, "w")
+    if not file then
+        response = {
+            status = 500,
+            message = base64Encode("500: Internal Server Error - " .. err),
+            requestID = requestID
+        }
+    else
+        file.write(decodedData)
+        file.close()
+
+        response = {
+            status = 201,
+            message = base64Encode("201: File created"),
+            requestID = requestID
+        }
+    end
+
+    -- Log the response
+    print("[DEBUG] POST Response for", path, ":", textutils.serialize(response))
+
+    return response
 end
+
+
+    -- Decode the incoming message
+    function handleReverseRequest(log)
+        -- Validate input
+        if not (log.message and log.from and log.requestID) then
+            print("[DEBUG] Missing required fields in log:", textutils.serializeJSON(log))
+            return {
+                status = 400,
+                message = base64Encode("400: Bad Request - Missing required fields"),
+                requestID = log.requestID
+            }
+        end
+    
+        -- Decode message
+        local decodedMessage = base64Decode(log.message)
+        if not decodedMessage then
+            print("[DEBUG] Failed to decode message from", log.from, ":", log.message)
+            return {
+                status = 400,
+                message = base64Encode("400: Bad Request - Invalid message encoding"),
+                requestID = log.requestID
+            }
+        end
+    
+        print("[DEBUG] Decoded message:", decodedMessage)
+    
+        -- Parse method, path, and data
+        local method, path, data = decodedMessage:match("([^:]+):([^|]*)|?(.*)")
+        if not method or not path then
+            print("[DEBUG] Malformed message from", log.from, ":", decodedMessage)
+            return {
+                status = 400,
+                message = base64Encode("400: Bad Request - Malformed message"),
+                requestID = log.requestID
+            }
+        end
+    
+        print("[DEBUG] Parsed method:", method, "path:", path, "data:", data)
+    
+        -- Route request
+        local response
+        if method == "GET" then
+            response = handleGetRequest(log.from, path, log.requestID)
+        elseif method == "POST" then
+            response = handlePostRequest(log.from, path, data, log.requestID)
+        else
+            print("[DEBUG] Unsupported method:", method)
+            response = {
+                status = 400,
+                message = base64Encode("400: Bad Request - Unsupported method"),
+                requestID = log.requestID
+            }
+        end
+    
+        -- Log and return response
+        print("[DEBUG] Response generated:", textutils.serializeJSON(response))
+        return response
+    end
+    
+
+
+
+
+
 
 function login()
     print("Enter your username:")
@@ -165,7 +290,8 @@ function login()
     end
 end
 
--- Listen for Messages
+-- Listen for Messages (Sender-Side)
+
 function listen()
     while true do
         if userID then
@@ -175,25 +301,49 @@ function listen()
                     if log.from and log.message then
                         local decodedMessage = base64Decode(log.message)
 
-                        if decodedMessage:sub(1, 5) == "FILE:" then
-                            -- Extract the file content by removing the "FILE:" prefix
-                            local fileContent = base64Decode(decodedMessage:sub(6))
-                            print("Received file content from", log.from, ":")
-                            print(fileContent) -- Print the file content
-                        elseif decodedMessage == "ping" then
-                            print("Received ping from", log.from)
-                            local pongResponse, pongErr = httpPost("/send", {
-                                fromUserID = userID,
-                                targetSubIP = log.from,
-                                message = base64Encode("pong")
-                            })
-                            if not pongResponse then
-                                print("Error sending pong:", pongErr)
+                        -- Check for reverse request response by identifying the "responseID"
+                        if log.message and log.from and log.requestID then
+                            -- Detect GET or POST requests and call handleReverseRequest
+                            local reverseResponse = handleReverseRequest(log)
+                            if reverseResponse then
+                                httpPost("/send", {
+                                    fromUserID = userID,
+                                    targetSubIP = log.from,
+                                    message = reverseResponse.message,
+                                    requestID = reverseResponse.requestID
+                                })
                             end
-                        elseif decodedMessage == "pong" then
-                            print("Received pong from", log.from)
                         else
-                            handleReverseRequest(log)
+                            if log.requestID and log.from then
+                                print("Received response for requestID:", log.requestID, "from:", log.from)
+    
+                                -- If it's a file content response
+                                if decodedMessage:sub(1, 5) == "FILE:" then
+                                    local fileContent = base64Decode(decodedMessage:sub(6))
+                                    print("File Content Received:\n" .. fileContent)
+    
+                                -- If it's a standard response message
+                                else
+                                    print("Response Message Received:\n" .. decodedMessage)
+                                end
+                                -- Always log the `responseID` for debugging
+                                print("Response ID:", log.requestID)
+                            elseif decodedMessage:sub(1, 5) == "FILE:" then
+                                -- Handle generic file responses (without request ID)
+                                local fileContent = base64Decode(decodedMessage:sub(6))
+                                print("Received file content from", log.from, ":")
+                                print(fileContent) -- Print the file content
+                            elseif decodedMessage == "ping" then
+                                httpPost("/send", {
+                                    fromUserID = userID,
+                                    targetSubIP = log.from,
+                                    message = base64Encode("pong")
+                                })
+                            elseif decodedMessage == "pong" then
+
+                            else
+                                print("Unexpected message received from", log.from, ":", decodedMessage)
+                            end
                         end
                     end
                 end
@@ -204,6 +354,50 @@ function listen()
         sleep(5)
     end
 end
+
+function listen2()
+    while true do
+        if userID then
+            local response, err = httpPost("/listen", { userID = userID })
+            if response and response.logs then
+                for _, log in ipairs(response.logs) do
+                    -- Debug: Print the full log
+                    print("[DEBUG] Processing log entry:", textutils.serialize(log))
+                    print("DECODED: " .. base64Decode(log.message))
+
+                    -- Validate the log entry
+                    if log.message and log.from and log.requestID then
+                        -- Detect GET or POST requests and call handleReverseRequest
+                        print("Processing reverse request from:", log.from)
+                        local reverseResponse = handleReverseRequest(log)
+                        -- Send the response back using /send endpoint
+                        
+                        if reverseResponse then
+                            print("Response message: " .. reverseResponse.message)
+                            httpPost("/send", {
+                                fromUserID = userID,
+                                targetSubIP = log.from,
+                                message = reverseResponse.message,
+                                requestID = reverseResponse.requestID
+                            })
+                        end
+                    else
+                        -- Log invalid entries
+                        print("[DEBUG] Invalid log entry:", textutils.serialize(log))
+                    end
+                end
+            else
+                -- Debug: Log the error if the HTTP request fails
+                print("Error listening for messages:", err)
+            end
+        end
+        sleep(5)
+    end
+end
+
+
+
+
 
 
 function pingTarget()
@@ -223,11 +417,16 @@ function simulateWebRequest()
     print("2. POST")
     local choice = read()
 
+    -- Print user details for debugging
+    print("Your User ID: ", userID)
     if choice == "1" then
         print("Enter target Sub-IP:")
         local targetSubIP = read()
         print("Enter file path:")
         local path = read()
+
+        -- Debug the request
+        print("[DEBUG] Sending GET request to:", targetSubIP, "Path:", path)
 
         httpPost("/reverse", {
             fromUserID = userID,
@@ -243,6 +442,9 @@ function simulateWebRequest()
         print("Enter file content:")
         local data = read()
 
+        -- Debug the request
+        print("[DEBUG] Sending POST request to:", targetSubIP, "Path:", path, "Data:", data)
+
         httpPost("/reverse", {
             fromUserID = userID,
             targetSubIP = targetSubIP,
@@ -252,6 +454,7 @@ function simulateWebRequest()
         })
     end
 end
+
 -- Register a new user
 local function register()
     print("Enter a username:")
@@ -383,7 +586,254 @@ local function transferDomain()
         print("Error transferring domain:", err)
     end
 end
+function sasMenu()
+    while true do
+        print("\nSAS Menu:")
+        print("1. WHOIS Lookup")
+        print("2. Blacklist ISP")
+        print("3. Ping Sub-IP")
+        print("4. View Logs")
+        print("5. Bulk Delete Domains by User")
+        print("6. List All Users")
+        print("7. List All ISPs (Known and Unknown)")
+        print("8. Accept ISP Request")
+        print("9. Deny ISP Request")
+        print("10. Back to Main Menu")
+        print("Choose an option:")
+        local choice = read()
 
+        if choice == "1" then
+            sasWhois()
+        elseif choice == "2" then
+            sasBlacklistISP()
+        elseif choice == "3" then
+            sasPingSubIP()
+        elseif choice == "4" then
+            sasViewLogs()
+        elseif choice == "5" then
+            sasBulkDeleteDomainsByUser()
+        elseif choice == "6" then
+            sasListUsers()
+        elseif choice == "7" then
+            sasListISPs()
+        elseif choice == "8" then
+            sasAcceptRequest()
+        elseif choice == "9" then
+            sasDenyRequest()
+        elseif choice == "10" then
+            break
+        else
+            print("Invalid option!")
+        end
+    end
+end
+
+function sasListISPs()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+
+    local response, err = httpPost("/sas", {
+        username = username,
+        password = password,
+        action = "listISPs"
+    })
+
+    if response then
+        print("Known ISPs:", textutils.serialize(response.knownISPs))
+        print("Unknown ISPs:", textutils.serialize(response.unknownISPs))
+    else
+        print("Error:", err)
+    end
+end
+
+function sasAcceptRequest()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+    print("Enter ISP ID to accept:")
+    local ispID = read()
+
+    local response, err = httpPost("/sas", {
+        username = username,
+        password = password,
+        action = "acceptRequest",
+        ispID = ispID
+    })
+
+    if response then
+        print("Accept Request Response:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
+
+function sasDenyRequest()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+    print("Enter ISP ID to deny:")
+    local ispID = read()
+
+    local response, err = httpPost("/sas", {
+        username = username,
+        password = password,
+        action = "denyRequest",
+        ispID = ispID
+    })
+
+    if response then
+        print("Deny Request Response:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
+
+
+function sasWhois()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+    print("Enter target (Sub-IP or ISP ID):")
+    local target = read()
+
+    -- Determine whether the target is a Sub-IP or an ISP ID
+    local requestPayload = {
+        username = username,
+        password = password,
+        action = "whois"
+    }
+    if target:match("^%d+%.%d+%.%d+%.%d+$") then
+        -- Target is a Sub-IP
+        requestPayload.subIP = target
+    elseif target:match("^[a-f0-9%-]+$") then
+        -- Target is an ISP ID
+        requestPayload.ispID = target
+    else
+        print("Invalid target format. Must be a valid Sub-IP or ISP ID.")
+        return
+    end
+    -- Send the request
+    local response, err = httpPost("/sas", requestPayload)
+
+    if response then
+        print("WHOIS Response:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
+
+
+function sasBlacklistISP()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+    print("Enter ISP Real IP to blacklist:")
+    local realIP = read()
+
+    local response, err = httpPost("/sas", {
+        username = username,
+        password = password,
+        action = "ISPblacklist",
+        realIP = realIP
+    })
+
+    if response then
+        print("Blacklist Response:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
+
+function sasPingSubIP()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+    print("Enter target Sub-IP:")
+    local subIP = read()
+
+    local response, err = httpPost("/sas", {
+        username = username,
+        password = password,
+        action = "ping",
+        subIP = subIP
+    })
+
+    if response then
+        print("Ping Response:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
+
+function sasViewLogs()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+    print("Enter log type (traffic):")
+    local logType = read()
+
+    local response, err = httpPost("/sas", {
+        username = username,
+        password = password,
+        action = "viewLogs",
+        type = logType
+    })
+
+    if response then
+        print("Logs:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
+
+function sasBulkDeleteDomainsByUser()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+    print("Enter User ID to delete domains for:")
+    local userID = read()
+
+    local response, err = httpPost("/sas", {
+        username = username,
+        password = password,
+        action = "BulkDeleteDomainByUser",
+        userID = userID
+    })
+
+    if response then
+        print("Bulk Delete Response:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
+
+function sasListUsers()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+
+    local response, err = httpPost("/sas", {
+        username = username,
+        password = password,
+        action = "listUsers"
+    })
+
+    if response then
+        print("Users List:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
 
 function mainMenu()
     while true do
@@ -396,7 +846,8 @@ function mainMenu()
         print("6. Transfer Domain")
         print("7. Redirect Domain")
         print("8. Query Domain")
-        print("9. Exit")
+        print("9. SAS Commands")
+        print("10. Exit")
         print("Choose an option:")
         local choice = read()
 
@@ -421,6 +872,8 @@ function mainMenu()
         elseif choice == "8" then
             queryDomain()
         elseif choice == "9" then
+            sasMenu()
+        elseif choice == "10" then
             print("Goodbye!")
             break
         else
