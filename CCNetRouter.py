@@ -22,12 +22,11 @@ config = {}
 last_loaded_config = {}
 unknown_isps = {}
 
-
 CONFIG_FILE = "config.json"
 DEFAULT_CONFIG = {
-    "port": 7090,
+    "port": 7080,
     "host": "0.0.0.0",
-    "subIPPrefix": "192.0.",
+    "subIPPrefix": "10.0.",
     "inactivity_limit_days": 3,
     "check_config_interval_seconds": 60,
     "adminUsername": "admin",
@@ -235,6 +234,7 @@ def save_domains_to_file():
         with open("domains.txt", "w") as file:
             for domain, details in domains.items():
                 file.write(f"{domain},{details['ownerUserID']}\n")
+        print("[DEBUG] Domains saved successfully.")
     except Exception as e:
         print(f"[ERROR] Failed to save domains: {str(e)}")
 
@@ -611,20 +611,26 @@ def check_domain_conflicts(remote_domains, isp_id):
 @app.route("/domain/export", methods=["GET"])
 def export_domains():
     try:
+        # Ensure the request comes from a known ISP
+        real_ip = request.remote_addr
+        known_isp = next((isp for isp in isps.values() if isp["realIP"] == real_ip), None)
+
+        if not known_isp:
+            return jsonify({"error": "Unauthorized access: IP not recognized as a known ISP"}), 403
+
+        # Return the list of domains if the request is authorized
         return jsonify({"domains": domains}), 200
     except Exception as e:
         return jsonify({"error": "Internal Server Error"}), 500
-    
+ 
 
 @app.route("/domain/query", methods=["POST"])
 def query_domain():
     try:
-        # Parse the incoming JSON
         data = request.json
         domain = data.get("domain")
         if not domain:
             return jsonify({"error": "Missing domain"}), 400
-
         real_ip = request.remote_addr  # Get the sender's IP address
 
         # Check locally first
@@ -869,6 +875,7 @@ def send_message():
 def reverse_webserver():
     try:
         data = request.json
+
         # Extract necessary fields
         target_sub_ip = data.get("targetSubIP")
         method = data.get("method", "").upper()

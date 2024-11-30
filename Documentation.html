@@ -399,6 +399,152 @@ end
                 </code>
             </div>
         </div>
+<!-- ISP WHOIS -->
+<div id="isp-whois" class="endpoint">
+    <h2>ISP WHOIS</h2>
+    <p>Retrieves information about a Sub-IP or ISP.</p>
+    <strong>POST /isp/whois</strong>
+    <div class="parameter">
+        <h3>Parameters:</h3>
+        <ul>
+            <li><strong>subIP</strong> (string): The target Sub-IP address to look up.</li>
+        </ul>
+    </div>
+    <div class="response">
+        <h3>Response:</h3>
+        <code>
+{
+    "username": "john_doe",
+    "subIP": "192.0.0.2",
+    "realIP": "203.0.113.15",
+    "lastKnownIP": "Unknown",
+    "domains": ["example.com", "anotherdomain.com"]
+}
+        </code>
+    </div>
+    <div class="examples">
+        <h3>Examples</h3>
+        <h4>cURL</h4>
+        <code>
+curl -X POST http://example.com/isp/whois \
+-H "Content-Type: application/json" \
+-d '{"subIP": "192.0.0.2"}'
+        </code>
+        <h4>ComputerCraft</h4>
+        <code>
+http.post(
+    "http://example.com/isp/whois",
+    textutils.serializeJSON({ subIP = "192.0.0.2" }),
+    { ["Content-Type"] = "application/json" }
+)
+        </code>
+        <h4>OpenComputers</h4>
+        <code>
+local internet = require("internet")
+local data = [[{"subIP": "192.0.0.2"}]]
+local request = internet.request("http://example.com/isp/whois", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+        </code>
+    </div>
+</div>
+
+<!-- ISP Ping -->
+<div id="isp-ping" class="endpoint">
+    <h2>ISP Ping</h2>
+    <p>Pings a Sub-IP address to measure response time.</p>
+    <strong>POST /isp/ping</strong>
+    <div class="parameter">
+        <h3>Parameters:</h3>
+        <ul>
+            <li><strong>subIP</strong> (string): The Sub-IP address to ping.</li>
+        </ul>
+    </div>
+    <div class="response">
+        <h3>Response:</h3>
+        <code>
+{
+    "message": "Responded in 42 ms",
+    "latency_ms": 42
+}
+        </code>
+    </div>
+    <div class="examples">
+        <h3>Examples</h3>
+        <h4>cURL</h4>
+        <code>
+curl -X POST http://example.com/isp/ping \
+-H "Content-Type: application/json" \
+-d '{"subIP": "192.0.0.2"}'
+        </code>
+        <h4>ComputerCraft</h4>
+        <code>
+http.post(
+    "http://example.com/isp/ping",
+    textutils.serializeJSON({ subIP = "192.0.0.2" }),
+    { ["Content-Type"] = "application/json" }
+)
+        </code>
+        <h4>OpenComputers</h4>
+        <code>
+local internet = require("internet")
+local data = [[{"subIP": "192.0.0.2"}]]
+local request = internet.request("http://example.com/isp/ping", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+        </code>
+    </div>
+</div>
+
+<!-- ISP Update SubIP -->
+<div id="isp-update-subip" class="endpoint">
+    <h2>ISP Update SubIP</h2>
+    <p>Updates the Sub-IP prefix for a known ISP.</p>
+    <strong>POST /isp/update_subip</strong>
+    <div class="parameter">
+        <h3>Parameters:</h3>
+        <ul>
+            <li><strong>ispID</strong> (string): The unique ID of the ISP to update.</li>
+            <li><strong>subIPPrefix</strong> (string): The new Sub-IP prefix (e.g., "192.0.1.").</li>
+        </ul>
+    </div>
+    <div class="response">
+        <h3>Response:</h3>
+        <code>
+{
+    "message": "Sub-IP Prefix updated successfully."
+}
+        </code>
+    </div>
+    <div class="examples">
+        <h3>Examples</h3>
+        <h4>cURL</h4>
+        <code>
+curl -X POST http://example.com/isp/update_subip \
+-H "Content-Type: application/json" \
+-d '{"ispID": "abc123", "subIPPrefix": "192.0.1."}'
+        </code>
+        <h4>ComputerCraft</h4>
+        <code>
+http.post(
+    "http://example.com/isp/update_subip",
+    textutils.serializeJSON({ ispID = "abc123", subIPPrefix = "192.0.1." }),
+    { ["Content-Type"] = "application/json" }
+)
+        </code>
+        <h4>OpenComputers</h4>
+        <code>
+local internet = require("internet")
+local data = [[{"ispID": "abc123", "subIPPrefix": "192.0.1."}]]
+local request = internet.request("http://example.com/isp/update_subip", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+        </code>
+    </div>
+</div>
 
         <!-- Send Message -->
         <div id="send-message" class="endpoint">
