@@ -553,7 +553,8 @@ function sasMenu()
         print("7. View Logs")
         print("8. Bulk Delete Domains by User")
         print("9. List Users")
-        print("10. Back to Main Menu")
+        print("10. Register ISP")
+        print("11. Back to Main Menu")
         print("Choose an option:")
         local choice = read()
 
@@ -576,6 +577,8 @@ function sasMenu()
         elseif choice == "9" then
             sasListUsers()
         elseif choice == "10" then
+            sasRegisterISP()
+        elseif choice == "11" then
             print("Returning to Main Menu.")
             break
         else
@@ -583,6 +586,38 @@ function sasMenu()
         end
     end
 end
+
+
+function sasRegisterISP()
+    print("Enter admin username:")
+    local username = read()
+    print("Enter admin password:")
+    local password = read()
+    print("Enter ISP Sub-IP Prefix (e.g., 192.):")
+    local subIPPrefix = read()
+    print("Enter ISP Real IP:")
+    local realIP = read()
+    print("Enter ISP Port:")
+    local port = tonumber(read())
+    local knownISPsInput = read()
+    local knownISPs = knownISPsInput ~= "" and textutils.unserializeJSON(knownISPsInput) or {}
+
+    local response, err = httpPost("/isp/register", {
+        ispID = nil, -- Let the server generate if not provided
+        subIPPrefix = subIPPrefix,
+        realIP = realIP,
+        port = port,
+        domains = "",
+        knownISPs = knownISPs
+    })
+
+    if response then
+        print("Register ISP Response:", textutils.serialize(response))
+    else
+        print("Error:", err)
+    end
+end
+
 
 function sasListISPs()
     print("Enter admin username:")
