@@ -788,3 +788,277 @@ for chunk in request do
     print(chunk)
 end
 ```
+```
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "listISPs",
+    "username": "admin",
+    "password": "adminPassword"
+}'
+```
+```
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "listISPs", 
+        username = "admin", 
+        password = "adminPassword" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+```
+```
+local internet = require("internet")
+local data = [[{
+    "action": "listISPs",
+    "username": "admin",
+    "password": "adminPassword"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+```
+```
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "acceptRequest",
+    "username": "admin",
+    "password": "adminPassword",
+    "ispID": "isp123"
+}'
+```
+```
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "acceptRequest", 
+        username = "admin", 
+        password = "adminPassword", 
+        ispID = "isp123" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+```
+```
+local internet = require("internet")
+local data = [[{
+    "action": "acceptRequest",
+    "username": "admin",
+    "password": "adminPassword",
+    "ispID": "isp123"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+```
+```
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "denyRequest",
+    "username": "admin",
+    "password": "adminPassword",
+    "ispID": "isp123"
+}'
+```
+```
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "denyRequest", 
+        username = "admin", 
+        password = "adminPassword", 
+        ispID = "isp123" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+```
+```
+local internet = require("internet")
+local data = [[{
+    "action": "denyRequest",
+    "username": "admin",
+    "password": "adminPassword",
+    "ispID": "isp123"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+```
+```
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "ISPblacklist",
+    "username": "admin",
+    "password": "adminPassword",
+    "realIP": "192.0.2.1"
+}'
+```
+```
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "ISPblacklist", 
+        username = "admin", 
+        password = "adminPassword", 
+        realIP = "192.0.2.1" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+```
+```
+local internet = require("internet")
+local data = [[{
+    "action": "ISPblacklist",
+    "username": "admin",
+    "password": "adminPassword",
+    "realIP": "192.0.2.1"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+```
+```
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "ping",
+    "username": "admin",
+    "password": "adminPassword",
+    "subIP": "192.168.1.1"
+}'
+```
+```
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "ping", 
+        username = "admin", 
+        password = "adminPassword", 
+        subIP = "192.168.1.1" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+```
+```
+local internet = require("internet")
+local data = [[{
+    "action": "ping",
+    "username": "admin",
+    "password": "adminPassword",
+    "subIP": "192.168.1.1"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+```
+```
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "viewLogs",
+    "username": "admin",
+    "password": "adminPassword",
+    "type": "traffic"
+}'
+```
+```
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "viewLogs", 
+        username = "admin", 
+        password = "adminPassword", 
+        type = "traffic" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+```
+```
+local internet = require("internet")
+local data = [[{
+    "action": "viewLogs",
+    "username": "admin",
+    "password": "adminPassword",
+    "type": "traffic"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+```
+```
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "BulkDeleteDomainByUser",
+    "username": "admin",
+    "password": "adminPassword",
+    "userID": "user123"
+}'
+```
+```
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "BulkDeleteDomainByUser", 
+        username = "admin", 
+        password = "adminPassword", 
+        userID = "user123" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+```
+```
+local internet = require("internet")
+local data = [[{
+    "action": "BulkDeleteDomainByUser",
+    "username": "admin",
+    "password": "adminPassword",
+    "userID": "user123"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+```
+```
+curl -X POST http://example.com/sas \
+-H "Content-Type: application/json" \
+-d '{
+    "action": "listUsers",
+    "username": "admin",
+    "password": "adminPassword"
+}'
+```
+```
+http.post(
+    "http://example.com/sas",
+    textutils.serializeJSON({ 
+        action = "listUsers", 
+        username = "admin", 
+        password = "adminPassword" 
+    }),
+    { ["Content-Type"] = "application/json" }
+)
+```
+```
+local internet = require("internet")
+local data = [[{
+    "action": "listUsers",
+    "username": "admin",
+    "password": "adminPassword"
+}]]
+local request = internet.request("http://example.com/sas", data, { ["Content-Type"] = "application/json" })
+for chunk in request do
+    print(chunk)
+end
+```

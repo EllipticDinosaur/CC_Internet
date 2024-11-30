@@ -134,8 +134,6 @@ function handleGetRequest(fromSubIP, path, requestID)
     return response
 end
 
-
-
 function handlePostRequest(fromSubIP, path, data, requestID)
     if not path or path:find("public/", 1, true) then
         return {
