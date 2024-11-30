@@ -22,11 +22,12 @@ config = {}
 last_loaded_config = {}
 unknown_isps = {}
 
+
 CONFIG_FILE = "config.json"
 DEFAULT_CONFIG = {
-    "port": 7080,
+    "port": 7090,
     "host": "0.0.0.0",
-    "subIPPrefix": "10.0.",
+    "subIPPrefix": "192.0.",
     "inactivity_limit_days": 3,
     "check_config_interval_seconds": 60,
     "adminUsername": "admin",
@@ -234,7 +235,6 @@ def save_domains_to_file():
         with open("domains.txt", "w") as file:
             for domain, details in domains.items():
                 file.write(f"{domain},{details['ownerUserID']}\n")
-        print("[DEBUG] Domains saved successfully.")
     except Exception as e:
         print(f"[ERROR] Failed to save domains: {str(e)}")
 
@@ -619,10 +619,12 @@ def export_domains():
 @app.route("/domain/query", methods=["POST"])
 def query_domain():
     try:
+        # Parse the incoming JSON
         data = request.json
         domain = data.get("domain")
         if not domain:
             return jsonify({"error": "Missing domain"}), 400
+
         real_ip = request.remote_addr  # Get the sender's IP address
 
         # Check locally first
@@ -823,9 +825,6 @@ def send_message():
         target_sub_ip = data.get("targetSubIP")
         message = base64_decode(data.get("message", ""))
 
-        print("Request Data:", data)
-        print("Target Sub-IP:", target_sub_ip)
-
         if not target_sub_ip or not message:
             return jsonify({"error": "Missing required fields"}), 400
 
@@ -842,19 +841,11 @@ def send_message():
             from_sub_ip = data.get("fromSubIP")
             if not from_sub_ip:
                 return jsonify({"error": "Missing fromSubIP for remote ISP"}), 400
-
-        # Debug: Print local users
-        print("Users Sub-IPs:", [(u["userID"], u["subIP"]) for u in users.values()])
-
         # Local delivery
         for user_id, sub_ip in [(u["userID"], u["subIP"]) for u in users.values()]:
             if sub_ip == target_sub_ip:
                 traffic_logs[user_id].append({"from": from_sub_ip, "message": base64_encode(message)})
                 return jsonify({"message": "Message sent successfully"}), 200
-                
-        # Debug: Print registered ISPs
-        print("Registered ISP Prefixes:", [isp["subIPPrefix"] for isp in isps.values()])
-
         # Remote delivery
         for isp_id, isp in isps.items():
             print(isp["subIPPrefix"])
@@ -878,7 +869,6 @@ def send_message():
 def reverse_webserver():
     try:
         data = request.json
-
         # Extract necessary fields
         target_sub_ip = data.get("targetSubIP")
         method = data.get("method", "").upper()
