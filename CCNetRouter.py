@@ -22,10 +22,9 @@ config = {}
 last_loaded_config = {}
 unknown_isps = {}
 
-
 CONFIG_FILE = "config.json"
 DEFAULT_CONFIG = {
-    "port": 7090,
+    "port": 7080,
     "host": "0.0.0.0",
     "subIPPrefix": "10.0.",
     "inactivity_limit_days": 3,
@@ -227,6 +226,7 @@ def get_sub_ip_for_user_id(user_id):
         if data["userID"] == user_id:
             return data["subIP"]
     return None
+
 def count_domains_for_user(user_id):
     return sum(1 for data in domains.values() if data["owner"] == user_id)
 def save_domains_to_file():
@@ -272,7 +272,6 @@ def update_subip():
             return jsonify({"error": "ISP not found."}), 404
 
     except Exception as e:
-        print(f"[ERROR] Exception in /isp/update_subip: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 #SAS, switched access services
@@ -316,7 +315,6 @@ def sas():
                 }), 200
             for isp_id, isp in isps.items():
                 if target.startswith(isp["subIPPrefix"]):
-                    print(f"[DEBUG] Forwarding WHOIS request for {target} to ISP {isp_id}")
                     try:
                         response = requests.post(
                             f"http://{isp['realIP']}:{isp['port']}/isp/whois",
@@ -331,7 +329,6 @@ def sas():
                         else:
                             return jsonify({"error": "Failed to retrieve information from remote ISP"}), 502
                     except Exception as e:
-                        print(f"[ERROR] Failed to forward WHOIS request to ISP {isp_id}: {str(e)}")
                         return jsonify({"error": "Failed to forward request to remote ISP"}), 502
             else:
                 return jsonify({"error": "Target not found"}), 404
@@ -424,7 +421,6 @@ def sas():
                     else:
                         return jsonify({"error": "Ping failed"}), 500
                 except Exception as e:
-                    print(f"[ERROR] Ping error: {str(e)}")
                     return jsonify({"error": "Internal Server Error"}), 500
 
             # If not local, forward to the appropriate ISP
@@ -443,7 +439,6 @@ def sas():
                         else:
                             return jsonify({"error": "Remote ISP ping failed", "details": response.json()}), response.status_code
                     except Exception as e:
-                        print(f"[ERROR] Failed to forward ping to ISP {isp_id}: {str(e)}")
                         return jsonify({"error": "Failed to contact remote ISP"}), 502
 
             # If Sub-IP is not found locally or with any ISP
@@ -502,7 +497,6 @@ def sas():
             return jsonify({"error": "Invalid action"}), 400
 
     except Exception as e:
-        print(f"[ERROR] Exception in /sas: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 @app.route("/domain/register", methods=["POST"])
@@ -515,7 +509,6 @@ def register_domain():
         # Validate 'fromUserID'
         from_user_id = data.get("ownerUserID")
         if not from_user_id:
-            print("[ERROR] Missing ownerUserID")
             return jsonify({"error": "Missing ownerUserID"}), 400
 
         # Find the username for the provided user ID
@@ -526,13 +519,11 @@ def register_domain():
                 break
 
         if not username:
-            print("[ERROR] Invalid ownerUserID")
             return jsonify({"error": "Invalid ownerUserID"}), 400
 
         # Decode and validate 'domain'
         domain = base64_decode(data.get("domain", ""))
         if not domain:
-            print("[ERROR] Missing or invalid domain")
             return jsonify({"error": "Missing or invalid domain"}), 400
 
         # Base64 encode the domain for server-side storage
@@ -540,7 +531,6 @@ def register_domain():
 
         # Check if the domain is already registered
         if encoded_domain in domains:
-            print("[ERROR] Domain already registered")
             return jsonify({"error": "Domain already registered"}), 409
 
         # Check if the user has exceeded their domain limit
@@ -549,7 +539,6 @@ def register_domain():
         ]
         print(f"[DEBUG] User has {len(user_domains)} domains.")
         if len(user_domains) >= 5:
-            print("[ERROR] Domain limit exceeded")
             return jsonify({"error": "Domain limit exceeded"}), 400
 
         # Register the domain
@@ -559,25 +548,18 @@ def register_domain():
         # Notify other ISPs about the new domain
         notify_isps_about_domain(encoded_domain, from_user_id)
 
-        print(f"[DEBUG] Domain registered successfully: {domain}")
         return jsonify({"message": "Domain registered successfully."}), 200
 
     except Exception as e:
-        print(f"[ERROR] Exception in /domain/register: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 def notify_isps_about_domain(encoded_domain, owner_user_id):
-    """Send the new domain registration to all known ISPs."""
     for isp_id, isp in isps.items():
         try:
             response = requests.post(
                 f"http://{isp['realIP']}:{isp['port']}/domain/sync",
                 json={"domain": encoded_domain, "ownerUserID": owner_user_id}
             )
-            if response.status_code == 200:
-                print(f"[INFO] Notified ISP {isp_id} about domain: {encoded_domain}")
-            else:
-                print(f"[ERROR] Failed to notify ISP {isp_id}: {response.status_code}")
         except Exception as e:
             print(f"[ERROR] Failed to notify ISP {isp_id}: {str(e)}")
 
@@ -598,7 +580,6 @@ def sync_domain():
         return jsonify({"message": "Domain synchronized successfully."}), 200
 
     except Exception as e:
-        print(f"[ERROR] Exception in /domain/sync: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 def request_domains_from_isps():
@@ -632,19 +613,17 @@ def export_domains():
     try:
         return jsonify({"domains": domains}), 200
     except Exception as e:
-        print(f"[ERROR] Exception in /domain/export: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
     
 
 @app.route("/domain/query", methods=["POST"])
 def query_domain():
     try:
-        # Parse the incoming JSON
         data = request.json
         domain = data.get("domain")
-
         if not domain:
             return jsonify({"error": "Missing domain"}), 400
+        real_ip = request.remote_addr  # Get the sender's IP address
 
         # Check locally first
         for encoded_domain, details in domains.items():
@@ -667,6 +646,10 @@ def query_domain():
 
         # If not found locally, check with known ISPs
         for isp_id, isp in isps.items():
+            # Skip the current ISP if the real IP matches the sender's IP
+            if isp["realIP"] == real_ip:
+                continue
+
             try:
                 response = requests.post(
                     f"http://{isp['realIP']}:{isp['port']}/domain/query",
@@ -675,13 +658,12 @@ def query_domain():
                 if response.status_code == 200:
                     return response.json(), 200
                 elif response.status_code == 404:
-                    print("404ed at contacting isp")
                     continue  # If the ISP doesn't find it, try the next one
                 else:
                     return jsonify({"error": "Error querying domain on ISP", "details": response.json()}), response.status_code
             except Exception as e:
-                print(f"[ERROR] Failed to query domain on ISP {isp_id}: {str(e)}")
-                return jsonify({"error": "Failed to query domain on remote ISP"}), 502
+                print(f"[ERROR] Exception querying ISP {isp_id} for domain {domain}: {str(e)}")
+                continue  # Skip to the next ISP
 
         # If the domain is not found locally or on any ISP
         return jsonify({"error": "Domain not found"}), 404
@@ -713,13 +695,11 @@ def redirect_domain():
 
         # Check if the provided ownerUserID matches the domain owner
         if domain_details["ownerUserID"] != owner_user_id:
-            print(f"[ERROR] Unauthorized access: {owner_user_id} does not own {domain}")
             return jsonify({"error": "Forbidden: You do not own this domain"}), 403
 
         # Update the domain redirect
         domains[encoded_domain]["redirect"] = target
         save_domains_to_file()
-        print(f"[INFO] Domain '{domain}' redirected to '{target}' by owner '{owner_user_id}'")
         return jsonify({"message": "Domain redirected successfully"}), 200
 
     except Exception as e:
@@ -804,14 +784,10 @@ def login():
 
     username = base64_decode(data.get("username", ""))
     password = base64_decode(data.get("password", ""))
-    print(username)
-    print(password)
     if not username or not password:
         return jsonify({"error": "Missing username or password"}), 400
 
     user = users.get(username)
-    print(user)
-    print(user["password"])
     if not user or user["password"] != password:
         return jsonify({"error": "Invalid username or password"}), 401
 
@@ -820,7 +796,6 @@ def login():
         "subIP": user["subIP"],
         "userID": user["userID"]
     })
-
 
 # Listen endpoint
 @app.route("/listen", methods=["POST"])
@@ -846,8 +821,11 @@ def send_message():
     try:
         data = request.json
         target_sub_ip = data.get("targetSubIP")
-        message = (data.get("message", ""))
-        
+        message = base64_decode(data.get("message", ""))
+
+        print("Request Data:", data)
+        print("Target Sub-IP:", target_sub_ip)
+
         if not target_sub_ip or not message:
             return jsonify({"error": "Missing required fields"}), 400
 
@@ -855,15 +833,9 @@ def send_message():
         real_ip = request.remote_addr
         is_local = any(user["realIP"] == real_ip for user in users.values())
 
-        # Use userID for local clients, fromSubIP for remote ISPs
-        from_sub_ip = None
         if is_local:
             from_user_id = data.get("fromUserID")
-            if not from_user_id:
-                return jsonify({"error": "Missing fromUserID for local client"}), 400
-            
-            # Get the Sub-IP for the user
-            from_sub_ip = get_sub_ip_for_user_id(from_user_id)
+            from_sub_ip = get_sub_ip_for_user_id(from_user_id) if from_user_id else None
             if not from_sub_ip:
                 return jsonify({"error": "Invalid fromUserID"}), 400
         else:
@@ -871,26 +843,35 @@ def send_message():
             if not from_sub_ip:
                 return jsonify({"error": "Missing fromSubIP for remote ISP"}), 400
 
+        # Debug: Print local users
+        print("Users Sub-IPs:", [(u["userID"], u["subIP"]) for u in users.values()])
+
         # Local delivery
         for user_id, sub_ip in [(u["userID"], u["subIP"]) for u in users.values()]:
             if sub_ip == target_sub_ip:
-                traffic_logs[user_id].append({"from": from_sub_ip, "message": (message)})
+                traffic_logs[user_id].append({"from": from_sub_ip, "message": base64_encode(message)})
                 return jsonify({"message": "Message sent successfully"}), 200
+                
+        # Debug: Print registered ISPs
+        print("Registered ISP Prefixes:", [isp["subIPPrefix"] for isp in isps.values()])
 
         # Remote delivery
         for isp_id, isp in isps.items():
+            print(isp["subIPPrefix"])
             if target_sub_ip.startswith(isp["subIPPrefix"]):
+                print("MATCH FOUND FOR ISP")
                 response = requests.post(
                     f"http://{isp['realIP']}:{isp['port']}/send",
-                    json={"fromSubIP": from_sub_ip, "targetSubIP": target_sub_ip, "message": (message)}
+                    json={"fromSubIP": from_sub_ip, "targetSubIP": target_sub_ip, "message": base64_encode(message)}
                 )
                 return response.json(), response.status_code
 
-        return jsonify({"error": "Target Sub-IP not found"}), 404
+        return jsonify({"error": "Target Sub-IP not found on network"}), 404
 
     except Exception as e:
-        print(f"[ERROR] Exception in /send: {str(e)}")
+        #print(f"[ERROR] Exception in /send: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+
 
 # Reverse Webserver Endpoint with GET Support
 @app.route("/reverse", methods=["POST"])
@@ -905,14 +886,6 @@ def reverse_webserver():
         post_data = data.get("data", "")
         from_user_id = data.get("fromUserID")
         request_id = data.get("requestID") or str(uuid.uuid4())  # Generate requestID if not provided
-
-        # Log the incoming request
-        print(f"[DEBUG] Incoming reverse request: {data}")
-
-        # Debug local users and ISPs
-        print(f"[DEBUG] Local users' Sub-IPs: {[u['subIP'] for u in users.values()]}")
-        print(f"[DEBUG] ISPs' Sub-IP Prefixes: {[isp['subIPPrefix'] for isp in isps.values()]}")
-
         # Validate inputs
         if not target_sub_ip or not method or not path:
             return jsonify({"error": "Missing required fields"}), 400
@@ -951,19 +924,15 @@ def reverse_webserver():
                     "message": message,
                     "requestID": request_id  # Add requestID for tracking
                 })
-                print("Sent request to {from_sub_ip} to {target_user_id}")
 
                 # Wait for response
                 def wait_for_response():
-                    print(f"[DEBUG] Waiting for response from Sub-IP {target_sub_ip}")
                     for _ in range(45):  # Max 45 seconds
                         logs = traffic_logs[target_user_id]
                         for log in logs:
                             if log.get("from") == from_sub_ip and log.get("requestID") == request_id and "response" in log:
-                                print(f"[DEBUG] Response found for requestID {request_id}: {log['response']}")
                                 return log["response"]
                         time.sleep(0.1)
-                    print("[DEBUG] No response received within the timeout period")
                     return None
 
                 response = wait_for_response()
@@ -975,7 +944,6 @@ def reverse_webserver():
         # If not local, forward the request to the responsible ISP
         for isp_id, isp in isps.items():
             if target_sub_ip.startswith(isp["subIPPrefix"]):
-                print(f"[DEBUG] Forwarding reverse request for Sub-IP {target_sub_ip} to ISP {isp_id}")
                 try:
                     response = requests.post(
                         f"http://{isp['realIP']}:{isp['port']}/reverse",
@@ -988,18 +956,14 @@ def reverse_webserver():
                             "requestID": request_id
                         }
                     )
-                    print(f"[DEBUG] Forwarded request to ISP {isp_id}, received status: {response.status_code}")
                     return response.json(), response.status_code
                 except Exception as e:
-                    print(f"[ERROR] Failed to forward reverse request to ISP {isp_id}: {str(e)}")
                     return jsonify({"error": "Failed to forward request to remote ISP"}), 502
 
-# If no match is found, return an error
-        print(f"[DEBUG] No match found for Sub-IP {target_sub_ip} among local users or ISPs.")
+                # If no match is found, return an error
         return jsonify({"error": "Target Sub-IP not found"}), 404
     
     except Exception as e:
-        print(f"[ERROR] Exception in /reverse: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 # Save ISPs to a file
@@ -1083,7 +1047,6 @@ def isp_whois():
         return jsonify({"error": "Target not found"}), 404
 
     except Exception as e:
-        print(f"[ERROR] Exception in /isp/whois: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 
@@ -1132,7 +1095,6 @@ def isp_ping():
             else:
                 return jsonify({"error": "Ping failed"}), 500
         except Exception as e:
-            print(f"[ERROR] Ping error: {str(e)}")
             return jsonify({"error": "Internal Server Error"}), 500
 
     except Exception as e:
@@ -1195,7 +1157,6 @@ def register_isp():
         }), 202
 
     except Exception as e:
-        print(f"[ERROR] Exception in /isp/register: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 
