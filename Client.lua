@@ -71,11 +71,12 @@ local function base64Decode(data)
     return string.char(table.unpack(decoded))
 end
 
+--[[Config here]]
 serverURL = "http://10.0.1.2:7080"
 userID = nil
 subIP = nil
 publicDir = "public"
-
+--=============================
 if not fs.exists(publicDir) then
     fs.makeDir(publicDir)
 end
@@ -95,7 +96,7 @@ end
 
 function handleGetRequest(fromSubIP, path, requestID)
     path = base64Decode(path)
-    if not path or path:find("public/", 1, true) then
+    if not path or path:find(publicDir.."/", 1, true) then
         return {
             status = 400,
             message = base64Encode("400: Invalid or unsafe file path"),
